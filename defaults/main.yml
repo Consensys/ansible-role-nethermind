@@ -3,13 +3,6 @@
 nethermind_user: nethermind
 nethermind_group: "{{ nethermind_user }}"
 
-# Version to install
-# nethermind_version: "latest"
-
-# Building from source
-# nethermind_git_repo: "https://github.com/NethermindEth/nethermind.git"
-# nethermind_git_commit: "master"
-
 # Directory paths
 nethermind_base_dir: "/opt/nethermind"
 nethermind_install_dir: "{{ nethermind_base_dir }}/nethermind-{{ nethermind_version if nethermind_version != 'latest' else nethermind_latest.json.tag_name }}"
