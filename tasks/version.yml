@@ -16,11 +16,14 @@
 
 - name: Set fact for download string
   set_fact:
-    nethermind_download_string_matcher: "nethermind-*-{{ 'linux' if ansible_os_family|lower != 'darwin' else 'darwin' }}-{{ 'amd64' if ansible_architecture == 'x64' else ansible_architecture }}"
+    nethermind_download_string_matcher: "nethermind-*-{{ 'linux' if ansible_os_family|lower != 'darwin' else 'darwin' }}-{{ 'x64' if ansible_architecture == 'x86_64' else ansible_architecture }}"
     nethermind_legacy_download_string_matcher: "nethermind-{{ 'linux' if ansible_os_family|lower != 'darwin' else 'darwin' }}-{{ 'amd64' if ansible_architecture == 'x86_64' else ansible_architecture }}"
 
 - debug:
     var: nethermind_download_string_matcher
+
+- debug:
+    var: nethermind_legacy_download_string_matcher
 
 - name: "setting netherminds version download url {{ nethermind_urls.json.tag_name }}"
   loop: "{{ nethermind_urls.json.assets }}"
