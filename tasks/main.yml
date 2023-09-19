@@ -25,7 +25,7 @@
 
 - name: Get IP address to bind to if not provided
   include_tasks: "network.yml"
-  when: nethermind_host_ip is not defined
+  when: not netermind_network_external_ip
 
 - name: Create config
   include_tasks: "config.yml"

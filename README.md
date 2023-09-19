@@ -151,7 +151,7 @@ All variables which can be overridden are stored in [defaults/main.yml](defaults
 | `nethermind_network_bootnodes` | [] | NETHERMIND_NETWORKCONFIG_BOOTNODES |
 | `nethermind_network_diag_tracer_enabled` | false | NETHERMIND_NETWORKCONFIG_DIAGTRACERENABLED |
 | `nethermind_network_discovery_port` | 30303 | NETHERMIND_NETWORKCONFIG_DISCOVERYPORT |
-| `nethermind_network_external_ip` | null | NETHERMIND_NETWORKCONFIG_EXTERNALIP |
+| `netermind_network_external_ip` | null | NETHERMIND_NETWORKCONFIG_EXTERNALIP |
 | `nethermind_network_local_ip` | null | NETHERMIND_NETWORKCONFIG_LOCALIP |
 | `nethermind_network_max_active_peers` | 50 | NETHERMIND_NETWORKCONFIG_MAXACTIVEPEERS |
 | `nethermind_network_netty_arena_order` | 11 | NETHERMIND_NETWORKCONFIG_NETTYARENAORDER |
