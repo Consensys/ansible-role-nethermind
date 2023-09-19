@@ -338,7 +338,7 @@ JsonRpc:
   Enabled: "{{ nethermind_jsonrpc_enabled }}"
 {% endif %}
 {% if nethermind_jsonrpc_enabled_modules is defined %}
-  EnabledModules: "{{ nethermind_jsonrpc_enabled_modules | default([], true) }}"
+  EnabledModules: {{ nethermind_jsonrpc_enabled_modules | default([], true) }}
 {% endif %}
 {% if nethermind_jsonrpc_engine_enabled_modules is defined %}
   EngineEnabledModules: "{{ nethermind_jsonrpc_engine_enabled_modules | default([], true) }}"
