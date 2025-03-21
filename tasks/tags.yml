@@ -1,0 +1,8 @@
+- name: Set the version on a local file so it can be used by other automation
+  copy: 
+    content: "{{ nethermind_version if nethermind_version != 'latest' else nethermind_latest.json.tag_name }}"
+    dest: "{{ nethermind_version_info_file }}"
+    owner: "{{ nethermind_user }}"
+    group: "{{ nethermind_group }}"
+    mode: 0644    
+  become: true    

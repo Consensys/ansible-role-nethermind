@@ -13,6 +13,7 @@ nethermind_data_dir: "{{ nethermind_base_dir }}/data"
 nethermind_log_dir: "/var/log/nethermind"
 nethermind_init_log_directory: "{{ nethermind_log_dir }}"
 nethermind_launchd_dir: "/Library/LaunchAgents"
+nethermind_version_info_file: "{{ nethermind_config_dir }}/elc_version"
 
 # Managed service config
 nethermind_managed_service: true
