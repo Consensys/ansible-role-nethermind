@@ -25,7 +25,7 @@
   systemd:
     name: nethermind
     state: "{{ nethermind_systemd_state }}"
-    enabled: true
+    enabled: "{{ (nethermind_systemd_state!='stopped') | ternary('true', 'false') | bool }}"
   become: true
   when: ( nethermind_state_updates|length > 0 ) and
     ( nethermind_managed_service ) and
