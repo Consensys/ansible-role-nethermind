@@ -4,6 +4,14 @@
     msg: Role will not run if nethermind_version is not set. Accepts semver value or "latest"
   when: nethermind_version is not defined
 
+- name: Fetch architecture of the host
+  debug:
+    var: ansible_facts.architecture
+
+- name: Set system architecture to download appropriate binary
+  set_fact:
+    nethermind_architecture: "{{ 'arm64' if ansible_facts.architecture == 'aarch64' else 'x64' }}"
+
 - name: Include OS and distribution specific variables
   include_vars: "{{ item }}"
   with_first_found:
