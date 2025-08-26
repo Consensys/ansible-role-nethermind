@@ -30,7 +30,7 @@ nethermind_custom_config: {}
 nethermind_jsonrpc_enabled: true
 nethermind_jsonrpc_engine_host: "127.0.0.1"
 nethermind_jsonrpc_engine_port: 8551
-nethermind_jsonrpc_jwt_secret_path: "/path/to/jwtsecret"
+nethermind_jsonrpc_jwt_secret_path: "{{ nethermind_data_dir }}/keystore/jwt-secret"
 nethermind_jsonrpc_enabled_modules: ["Eth", "Subscribe", "Trace", "TxPool", "Web3", "Personal", "Proof", "Net", "Parity", "Health", "Rpc"]
 nethermind_jsonrpc_host: "127.0.0.1"
 nethermind_jsonrpc_port: 8545
