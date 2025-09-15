@@ -1,12 +1,4 @@
 ---
-- name: Create configuration directory
-  file:
-    path: "{{ nethermind_config_dir }}"
-    state: directory
-    owner: "{{ nethermind_user }}"
-    group: "{{ nethermind_group }}"
-    recurse: yes
-  become: true
 
 - name: Remove null nethermind config values
   set_fact:

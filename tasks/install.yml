@@ -26,28 +26,19 @@
     group: "{{ nethermind_group }}"
   become: true
 
-- name: Create base directory
-  file:
-    path: "{{ nethermind_base_dir }}"
-    state: directory
-    owner: "{{ nethermind_user }}"
-    group: "{{ nethermind_group }}"
-  become: true
 
-- name: Create install directory
+- name: Create directories
   file:
-    path: "{{ nethermind_install_dir }}"
+    path: "{{ item }}"
     state: directory
-    owner: "{{ nethermind_user }}"
+    name: "{{ nethermind_user }}"
     group: "{{ nethermind_group }}"
-  become: true
-
-- name: Create log directory
-  file:
-    path: "{{ nethermind_log_dir }}"
-    state: directory
-    owner: "{{ nethermind_user }}"
-    group: "{{ nethermind_group }}"
+    recurse: True    
+  loop:
+    - "{{ nethermind_base_dir }}"
+    - "{{ nethermind_install_dir }}"
+    - "{{ nethermind_log_dir }}"
+    - "{{ nethermind_config_dir }}"
   become: true
 
 - name: Setup logrotate
