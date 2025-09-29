@@ -69,12 +69,3 @@
   set_fact:
     nethermind_state_updates: "{{ nethermind_state_updates + ['nethermind.config_cfg'] }}"
   when: config_cfg is changed
-
-- name: Create data directory
-  file:
-    path: "{{ nethermind_data_dir }}"
-    state: directory
-    owner: "{{ nethermind_user }}"
-    group: "{{ nethermind_group }}"
-    recurse: yes
-  become: true

@@ -26,26 +26,66 @@
     group: "{{ nethermind_group }}"
   become: true
 
-
 - name: Create directories
   file:
     path: "{{ item }}"
     state: directory
-    name: "{{ nethermind_user }}"
+    owner: "{{ nethermind_user }}"
     group: "{{ nethermind_group }}"
-    recurse: True    
+    mode: "0755"
   loop:
     - "{{ nethermind_base_dir }}"
     - "{{ nethermind_install_dir }}"
     - "{{ nethermind_log_dir }}"
     - "{{ nethermind_config_dir }}"
+    - "{{ nethermind_data_dir }}"
   become: true
+
+- name: Ownership init marker
+  ansible.builtin.stat:
+    path: "{{ nethermind_data_dir }}/.ownership_initialized"
+  register: ownership_marker
 
 - name: Setup logrotate
   template:
     src: "logrotate/nethermind"
     dest: "/etc/logrotate.d/nethermind"
   become: true
+
+- name: Halt the service if its running while we update
+  ansible.builtin.systemd:
+    name: nethermind
+    state: "stopped"
+  become: true
+  register: nethermind_systemd_stopped
+  when: (ansible_facts.services['nethermind.service'] is defined) and
+        (ansible_facts.services['nethermind.service'].status =="enabled")
+
+- name: Set updated optionally to trigger a systemd restart at the end
+  ansible.builtin.set_fact:
+    nethermind_state_updates: "{{ nethermind_state_updates + ['nethermind.running_service'] }}"
+  when: (nethermind_systemd_stopped is defined) and 
+        (nethermind_systemd_stopped.state | default('') == "stopped")
+
+- block:
+    - name: One-time recursive ownership of data dir
+      ansible.builtin.file:
+        path: "{{ nethermind_data_dir }}"
+        state: directory
+        owner: "{{ nethermind_user }}"
+        group: "{{ nethermind_group }}"
+        recurse: true
+      become: true
+
+    - name: Record that ownership was initialized
+      ansible.builtin.copy:
+        dest: "{{ nethermind_data_dir }}/.ownership_initialized"
+        content: "initialized: {{ ansible_date_time.iso8601 }}"
+        owner: "{{ nethermind_user }}"
+        group: "{{ nethermind_group }}"
+        mode: "0644"
+      become: true
+  when: not ownership_marker.stat.exists
 
 - name: Extract nethermind binary to install directory
   unarchive:
@@ -57,11 +97,6 @@
     mode: "0775"
   become: true
   register: extract_src
-
-- name: Set updated optionally to trigger a systemd restart at the end
-  set_fact:
-    nethermind_state_updates: "{{ nethermind_state_updates + ['nethermind.install_dir'] }}"
-  when: extract_src is changed
 
 # will throw error the first time you install since the service isnt present
 - name: Stop nethermind systemd service if running
@@ -80,3 +115,8 @@
     dest: "{{ nethermind_current_dir }}"
     state: link
   become: true
+
+- name: Set updated optionally to trigger a systemd restart at the end
+  set_fact:
+    nethermind_state_updates: "{{ nethermind_state_updates + ['nethermind.install_dir'] }}"
+  when: extract_src is changed
