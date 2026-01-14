@@ -42,7 +42,7 @@
 # Build the matcher regex
 - name: Build download matcher
   set_fact:
-    nethermind_download_string_matcher: >
+    nethermind_download_string_matcher: >-
       nethermind-.*-{{ nethermind_os }}-{{ nethermind_arch }}\.zip$
 
 # Debug (optional)
