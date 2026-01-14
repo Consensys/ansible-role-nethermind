@@ -6,29 +6,63 @@
   when: nethermind_version is not defined or nethermind_version == "latest"
 
 - debug:
-    var: nethermind_latest.json.tag_name
+    var: nethermind_latest
 
-- name: Save download urls
+- name: Determine nethermind release tag
+  set_fact:
+    nethermind_release_tag: >-
+      {{
+        nethermind_latest.json.tag_name
+          if nethermind_version is not defined or nethermind_version == "latest"
+          else nethermind_version
+      }}
+
+# Fetch release assets for the resolved tag
+- name: Get nethermind release assets
   uri:
-    url: https://api.github.com/repos/NethermindEth/nethermind/releases/tags/{{ nethermind_latest.json.tag_name | default(nethermind_version) | regex_replace('^v','') }}
+    url: https://api.github.com/repos/NethermindEth/nethermind/releases/tags/{{ nethermind_release_tag | regex_replace('^v','') }}
     return_content: true
   register: nethermind_urls
 
-- name: Set fact for download string
+- debug:
+    var: nethermind_urls
+
+# Normalize OS and architecture to match release artifact naming
+- name: Normalize OS and architecture
   set_fact:
-    nethermind_download_string_matcher: "nethermind.*{{ 'linux' if ansible_os_family|lower != 'darwin' else 'darwin' }}-{{ 'x64' if ansible_architecture == 'x86_64' else ansible_architecture }}.*"
-    nethermind_legacy_download_string_matcher: "nethermind-{{ 'linux' if ansible_os_family|lower != 'darwin' else 'darwin' }}-{{ 'amd64' if ansible_architecture == 'x86_64' else ansible_architecture }}"
+    nethermind_os: >-
+      {{ 'linux' if ansible_os_family | lower != 'darwin' else 'macos' }}
+    nethermind_arch: >-
+      {{
+        'x64' if ansible_architecture == 'x86_64'
+        else 'arm64' if ansible_architecture in ['aarch64', 'arm64']
+        else ansible_architecture
+      }}
 
+# Build the matcher regex
+- name: Build download matcher
+  set_fact:
+    nethermind_download_string_matcher: >-
+      nethermind-.*-{{ nethermind_os }}-{{ nethermind_arch }}\.zip$
+
+# Debug (optional)
 - debug:
-    var: nethermind_download_string_matcher
+    msg: "Looking for asset matching {{ nethermind_download_string_matcher }}"
 
-- debug:
-    var: nethermind_legacy_download_string_matcher
-
-- name: "setting netherminds version download url {{ nethermind_urls.json.tag_name }}"
+# Find and store the correct download URL
+- name: Set nethermind download URL
+  set_fact:
+    nethermind_download_url: "{{ item.browser_download_url }}"
   loop: "{{ nethermind_urls.json.assets }}"
   loop_control:
     label: "{{ item.name }}"
-  when: item.name is match(nethermind_download_string_matcher) or item.name is match(nethermind_legacy_download_string_matcher)
-  set_fact:
-    nethermind_download_url: "{{ item.browser_download_url }}"
+  when: item.name is match(nethermind_download_string_matcher)
+
+- debug:
+    var: nethermind_download_url
+
+# Fail if no matching asset was found
+- name: Ensure nethermind download URL was found
+  fail:
+    msg: "No matching Nethermind release asset found for {{ nethermind_os }} {{ nethermind_arch }}"
+  when: nethermind_download_url is not defined
