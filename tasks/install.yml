@@ -13,9 +13,43 @@
 - name: Include version setter task
   ansible.builtin.include_tasks: "version.yml"
 
+- name: install | Lookup nethermind user
+  getent:
+    database: passwd
+    key: "{{ nethermind_user }}"
+  register: nethermind_user_entry
+  failed_when: false
+
+- name: install | Extract current UID (only if user exists)
+  set_fact:
+    nethermind_current_uid: "{{ nethermind_user_entry.ansible_facts.getent_passwd[nethermind_user][1] | int }}"
+  when: not nethermind_user_entry.failed
+
+- name: install | Determine if UID update is needed
+  set_fact:
+    nethermind_uid_needs_update: "{{ nethermind_current_uid != nethermind_uid }}"
+  when: not nethermind_user_entry.failed
+
+- name: install | Stop enabled nethermind services if UID needs update
+  service:
+    name: "nethermind"
+    state: stopped
+  when:
+    - not nethermind_user_entry.failed
+    - nethermind_uid_needs_update
+  become: true
+
+- name: install | Set updated optionally to trigger a systemd restart at the end
+  set_fact:
+    nethermind_state_updates: "{{ nethermind_state_updates + ['nethermind.uid'] }}"
+  when:
+    - not nethermind_user_entry.failed
+    - nethermind_uid_needs_update
+
 - name: Ensure nethermind group exists
   group:
     name: "{{ nethermind_group }}"
+    gid: "{{ nethermind_gid }}"    
     state: present
   become: true
 
@@ -23,6 +57,7 @@
   user:
     comment: nethermind client user
     name: "{{ nethermind_user }}"
+    uid: "{{ nethermind_uid }}"    
     group: "{{ nethermind_group }}"
   become: true
 
@@ -32,7 +67,7 @@
     state: directory
     owner: "{{ nethermind_user }}"
     group: "{{ nethermind_group }}"
-    mode: "0755"
+    recurse: true
   loop:
     - "{{ nethermind_base_dir }}"
     - "{{ nethermind_install_dir }}"
