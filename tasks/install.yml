@@ -20,31 +20,35 @@
   register: nethermind_user_entry
   failed_when: false
 
-- name: install | Extract current UID (only if user exists)
+- name: install | Determine if nethermind user exists
   set_fact:
-    nethermind_current_uid: "{{ nethermind_user_entry.ansible_facts.getent_passwd[nethermind_user][1] | int }}"
-  when: not nethermind_user_entry.failed
+    nethermind_user_exists: "{{ nethermind_user in (nethermind_user_entry.ansible_facts.getent_passwd | default({})) }}"
 
-- name: install | Determine if UID update is needed
-  set_fact:
-    nethermind_uid_needs_update: "{{ nethermind_current_uid != nethermind_uid }}"
-  when: not nethermind_user_entry.failed
+- block:
 
-- name: install | Stop enabled nethermind services if UID needs update
-  service:
-    name: "nethermind"
-    state: stopped
-  when:
-    - not nethermind_user_entry.failed
-    - nethermind_uid_needs_update
-  become: true
+  - name: install | Extract current UID (only if user exists)
+    set_fact:
+      nethermind_current_uid: "{{ nethermind_user_entry.ansible_facts.getent_passwd[nethermind_user][1] | int }}"
 
-- name: install | Set updated optionally to trigger a systemd restart at the end
-  set_fact:
-    nethermind_state_updates: "{{ nethermind_state_updates + ['nethermind.uid'] }}"
-  when:
-    - not nethermind_user_entry.failed
-    - nethermind_uid_needs_update
+  - name: install | Determine if UID update is needed
+    set_fact:
+      nethermind_uid_needs_update: "{{ nethermind_current_uid != nethermind_uid }}"
+
+  - name: install | Stop enabled nethermind services if UID needs update
+    service:
+      name: "nethermind"
+      state: stopped
+    when:
+      - nethermind_uid_needs_update
+    become: true
+
+  - name: install | Set updated optionally to trigger a systemd restart at the end
+    set_fact:
+      nethermind_state_updates: "{{ nethermind_state_updates + ['nethermind.uid'] }}"
+    when:
+      - nethermind_uid_needs_update
+
+  when: nethermind_user_exists
 
 - name: Ensure nethermind group exists
   group:
