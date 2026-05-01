@@ -1,7 +1,7 @@
+---
+profile: production
 exclude_paths: []
-parseable: true
-use_default_rules: true
-verbosity: true
 skip_list:
-  - '204'
-  - '602'
+  - yaml[trailing-spaces]
+  - jinja2[invalid]
+warn_list: []

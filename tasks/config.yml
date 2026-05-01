@@ -1,71 +1,71 @@
 ---
-
 - name: Remove null nethermind config values
-  set_fact:
+  ansible.builtin.set_fact:
     nethermind_template_null_remove: "{{ nethermind_template_null_remove | default({}, true) | combine({item.key: item.value}) }}"
   when: item.value is not none
-  with_dict: "{{ lookup('template', nethermind_config_template) | from_yaml }}"
+  loop: "{{ lookup('ansible.builtin.template', nethermind_config_template) | from_yaml | dict2items }}"
+  loop_control:
+    label: "{{ item.key }}"
 
 - name: Template nethermind templated config
-  set_fact:
+  ansible.builtin.set_fact:
     nethermind_templated_config: "{{ nethermind_template_null_remove | default({}, true) }}"
 
 - name: "read remote {{ nethermind_config_base }}"
   register: values
   ansible.builtin.slurp:
     src: "{{ nethermind_current_dir + '/configs/' + nethermind_config_base + '.cfg' }}"
-  ignore_errors: yes
+  ignore_errors: true
 
 - name: "Decode slurped {{ nethermind_config_base }}"
-  set_fact:
+  ansible.builtin.set_fact:
     nethermind_slurped_default_config: "{{ values.content | default('') | b64decode | default('{}', true) | from_json }}"
 
-- debug:
+- name: Debug slurped config
+  ansible.builtin.debug:
     var: nethermind_slurped_default_config
 
 - name: Merge custom config
-  set_fact:
+  ansible.builtin.set_fact:
     nethermind_merged_config: "{{ nethermind_slurped_default_config | combine(nethermind_templated_config, recursive=True) | combine(nethermind_custom_config, recursive=True) }}"
 
 - name: Generate config file
-  copy:
+  ansible.builtin.copy:
     content: "{{ nethermind_merged_config | to_nice_json }}"
     dest: "{{ nethermind_config_dir }}/{{ nethermind_config_base }}.cfg"
     owner: "{{ nethermind_user }}"
     group: "{{ nethermind_group }}"
-    mode: 0644
+    mode: '0644'
   become: true
   register: config_cfg
 
 - name: JWT secret
   block:
     - name: Check if a JWT secret already exists
-      stat:
+      ansible.builtin.stat:
         path: "{{ nethermind_engine_jwt_secret }}"
       register: stat_result
       when: nethermind_engine_jwt_secret_content is undefined
 
-    # Set the value if it is set by the user or if the secret does not already exist,
-    # if no secret is specified and there is not an existing secret on disk, then set it to a random value.
     - name: Set the JWT shared secret
-      copy:
+      ansible.builtin.copy:
         dest: "{{ nethermind_engine_jwt_secret }}"
         content: "{{ nethermind_engine_jwt_secret_content | default((('%#064x' % ((2 | pow(256) | int ) | random)) | split('x'))[1]) }}"
         owner: "{{ nethermind_user }}"
         group: "{{ nethermind_group }}"
-        mode: 0400
+        mode: '0400'
       register: jwt_secret_content
       when: nethermind_engine_jwt_secret_content is defined or not stat_result.stat.exists or stat_result.stat.size == 0
 
     - name: Set updated optionally to trigger a systemd restart at the end
-      set_fact:
+      ansible.builtin.set_fact:
         nethermind_state_updates: "{{ nethermind_state_updates + ['nethermind.jwt_secret_content'] }}"
       when: jwt_secret_content is changed
 
   when: nethermind_engine_jwt_secret is defined and nethermind_engine_jwt_secret != ""
-  become: yes
+  become: true
 
 - name: Set updated optionally to trigger a systemd restart at the end
-  set_fact:
+  ansible.builtin.set_fact:
     nethermind_state_updates: "{{ nethermind_state_updates + ['nethermind.config_cfg'] }}"
   when: config_cfg is changed

@@ -1,41 +1,47 @@
 ---
 - name: Create nethermind systemd service
-  template:
+  ansible.builtin.template:
     src: "{{ nethermind_systemd_template }}"
     dest: "{{ nethermind_systemd_dir }}/nethermind.service"
-    owner: "root"
-    group: "root"
+    owner: root
+    group: root
+    mode: '0644'
   become: true
-  when: ( nethermind_managed_service ) and
-    ( ansible_os_family != "Darwin" )
+  when:
+    - nethermind_managed_service
+    - ansible_os_family != "Darwin"
   register: systemd_file
 
 - name: Set updated optionally to trigger a systemd restart at the end
-  set_fact:
+  ansible.builtin.set_fact:
     nethermind_state_updates: "{{ nethermind_state_updates + ['nethermind.systemd_file'] }}"
   when: systemd_file is changed
 
 - name: Reload systemd to reread configs
-  systemd:
-    daemon_reload: yes
+  ansible.builtin.systemd_service:
+    daemon_reload: true
   become: true
   when: systemd_file is changed
 
 - name: Enable and start nethermind service
-  systemd:
+  ansible.builtin.systemd_service:
     name: nethermind
     state: "{{ nethermind_systemd_state }}"
-    enabled: "{{ (nethermind_systemd_state!='stopped') | ternary('true', 'false') | bool }}"
+    enabled: "{{ (nethermind_systemd_state != 'stopped') | bool }}"
   become: true
-  when: ( nethermind_state_updates|length > 0 ) and
-    ( nethermind_managed_service ) and
-    ( ansible_os_family != "Darwin" )
+  when:
+    - nethermind_state_updates | length > 0
+    - nethermind_managed_service
+    - ansible_os_family != "Darwin"
 
-# Darwin only
 - name: Create Launchd service plist for Darwin
-  template:
+  ansible.builtin.template:
     src: "{{ nethermind_launchd_template }}"
     dest: "{{ nethermind_launchd_dir }}/nethermind.plist"
+    owner: root
+    group: wheel
+    mode: '0644'
   become: true
-  when: ( ansible_os_family == "Darwin" ) and
-    ( nethermind_managed_service )
+  when:
+    - ansible_os_family == "Darwin"
+    - nethermind_managed_service

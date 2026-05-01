@@ -1,15 +1,17 @@
+---
 - name: Get nethermind latest tag
-  uri:
+  ansible.builtin.uri:
     url: https://api.github.com/repos/NethermindEth/nethermind/releases/latest
     return_content: true
   register: nethermind_latest
   when: nethermind_version is not defined or nethermind_version == "latest"
 
-- debug:
+- name: Debug nethermind latest
+  ansible.builtin.debug:
     var: nethermind_latest
 
 - name: Determine nethermind release tag
-  set_fact:
+  ansible.builtin.set_fact:
     nethermind_release_tag: >-
       {{
         nethermind_latest.json.tag_name
@@ -17,19 +19,18 @@
           else nethermind_version
       }}
 
-# Fetch release assets for the resolved tag
 - name: Get nethermind release assets
-  uri:
-    url: https://api.github.com/repos/NethermindEth/nethermind/releases/tags/{{ nethermind_release_tag | regex_replace('^v','') }}
+  ansible.builtin.uri:
+    url: https://api.github.com/repos/NethermindEth/nethermind/releases/tags/{{ nethermind_release_tag | regex_replace('^v', '') }}
     return_content: true
   register: nethermind_urls
 
-- debug:
+- name: Debug nethermind URLs
+  ansible.builtin.debug:
     var: nethermind_urls
 
-# Normalize OS and architecture to match release artifact naming
 - name: Normalize OS and architecture
-  set_fact:
+  ansible.builtin.set_fact:
     nethermind_os: >-
       {{ 'linux' if ansible_os_family | lower != 'darwin' else 'macos' }}
     nethermind_arch: >-
@@ -39,30 +40,28 @@
         else ansible_architecture
       }}
 
-# Build the matcher regex
 - name: Build download matcher
-  set_fact:
+  ansible.builtin.set_fact:
     nethermind_download_string_matcher: >-
       nethermind-.*-{{ nethermind_os }}-{{ nethermind_arch }}\.zip$
 
-# Debug (optional)
-- debug:
+- name: Debug download matcher
+  ansible.builtin.debug:
     msg: "Looking for asset matching {{ nethermind_download_string_matcher }}"
 
-# Find and store the correct download URL
 - name: Set nethermind download URL
-  set_fact:
+  ansible.builtin.set_fact:
     nethermind_download_url: "{{ item.browser_download_url }}"
   loop: "{{ nethermind_urls.json.assets }}"
   loop_control:
     label: "{{ item.name }}"
   when: item.name is match(nethermind_download_string_matcher)
 
-- debug:
+- name: Debug download URL
+  ansible.builtin.debug:
     var: nethermind_download_url
 
-# Fail if no matching asset was found
 - name: Ensure nethermind download URL was found
-  fail:
+  ansible.builtin.fail:
     msg: "No matching Nethermind release asset found for {{ nethermind_os }} {{ nethermind_arch }}"
   when: nethermind_download_url is not defined

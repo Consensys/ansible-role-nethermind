@@ -1,11 +1,11 @@
 ---
 - name: Add nethermind Brew tap
-  homebrew_tap:
+  community.general.homebrew_tap:
     name: nethermindeth/nethermind
     state: present
 
 - name: Install nethermind dependencies via brew
-  homebrew:
+  community.general.homebrew:
     name: "{{ item }}"
     state: present
   loop:
